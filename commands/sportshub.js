@@ -1,21 +1,13 @@
-const { Telegraf } = require("telegraf");
-const express = require("express");
 const axios = require("axios");
 const cheerio = require("cheerio");
-const moment = require("moment-timezone");
-const path = require("path");
-const url = require("url");
-
-const bot = new Telegraf("5368324838:AAGhoZ_zYigKoxnCtem5McsMa_mJWAih4d8");
-const app = express();
 
 // Store matches data globally
-let matchUrlMap = new Map(); // Store URLs with short IDs
-let allMatches = []; // Store all matches with their dates
-let currentPage = new Map(); // Store current page for each user
-
-// Generate a short ID for URLs
+let matchUrlMap = new Map();
+let allMatches = [];
+let currentPage = new Map();
 let urlCounter = 1;
+
+// Helper functions
 function getShortId(url) {
   for (let [id, storedUrl] of matchUrlMap.entries()) {
     if (storedUrl === url) return id;
@@ -111,39 +103,6 @@ async function fetchSporthubMatches() {
     return [];
   }
 }
-
-bot.command("start", (ctx) => {
-  ctx.replyWithAnimation(
-    "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExbXNmYmMzamk3MXN3enY3MTIybXA2aTVocHppamxhd2J4b3FscGg5MiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/FT81iuXG98uwQuDLIq/giphy.gif",
-    {
-      caption: `🎉 **Welcome to the Live Streaming Bot!** 🎉
-        
-I'm here to help you catch all the **LIVE sports events** from around the world. ⚽🏀🎾
-
-📅 **What you can do:**
-- See today's live matches 🕒
-- Get live streams for your favorite games 🔴
-- Choose from multiple server options for the best viewing experience 🖥️
-
-Just type /sporthub to get started and enjoy your game! 🏅
-
-💬 **Need help?** Just ask! I'm here to assist you. 📲
-
-Let's get ready for some action! 🎬`,
-      parse_mode: "Markdown",
-    }
-  );
-});
-
-bot.command("sporthub", async (ctx) => {
-  try {
-    currentPage.set(ctx.from.id, 0);
-    await sendMatchesPage(ctx);
-  } catch (error) {
-    console.error("Error in sporthub command:", error);
-    await ctx.reply("Sorry, something went wrong. Please try again.");
-  }
-});
 
 async function sendMatchesPage(ctx, editMessage = false) {
   const matches = await fetchSporthubMatches();
@@ -286,130 +245,133 @@ async function sendMatchesPage(ctx, editMessage = false) {
   }
 }
 
-// Handle match selection
-bot.action(/sh_(\d+)/, async (ctx) => {
-  try {
-    const urlId = ctx.match[1];
-    const matchPageUrl = matchUrlMap.get(urlId);
-
-    if (!matchPageUrl) {
-      await ctx.answerCbQuery("Sorry, match details not found.");
-      return;
+// Main module export
+module.exports = (bot) => {
+  // Main sporthub command
+  bot.command("sportshub", async (ctx) => {
+    try {
+      currentPage.set(ctx.from.id, 0);
+      await sendMatchesPage(ctx);
+    } catch (error) {
+      console.error("Error in sporthub command:", error);
+      await ctx.reply("Sorry, something went wrong. Please try again.");
     }
+  });
 
-    const encodedMatchPageUrl = encodeURI(decodeURI(matchPageUrl));
-    const response = await axios.get(encodedMatchPageUrl);
-    const $ = cheerio.load(response.data);
+  // Handle match selection
+  bot.action(/sh_(\d+)/, async (ctx) => {
+    try {
+      const urlId = ctx.match[1];
+      const matchPageUrl = matchUrlMap.get(urlId);
 
-    const title = $(".d-flex.m-0 > span:nth-of-type(1)").text();
-    const servers = [];
+      if (!matchPageUrl) {
+        await ctx.answerCbQuery("Sorry, match details not found.");
+        return;
+      }
 
-    $("table:nth-of-type(n+2) [width='227'] a").each((_, element) => {
-      let fullUrl = $(element).attr("href");
+      const encodedMatchPageUrl = encodeURI(decodeURI(matchPageUrl));
+      const response = await axios.get(encodedMatchPageUrl);
+      const $ = cheerio.load(response.data);
 
-      if (fullUrl && fullUrl.includes("totalsportek.space/embed")) {
-        try {
-          fullUrl = encodeURI(decodeURI(fullUrl));
-          const urlObj = new URL(fullUrl);
-          const forceParam = urlObj.searchParams.get("force");
+      const title = $(".d-flex.m-0 > span:nth-of-type(1)").text();
+      const servers = [];
 
-          if (forceParam) {
-            const decodedUrl = decodeURIComponent(forceParam);
-            const serverDomain = new URL(decodedUrl).hostname;
-            const embedUrl = `https://srv1.eu.org/?stream=${encodeURIComponent(
-              decodedUrl
-            )}`;
+      $("table:nth-of-type(n+2) [width='227'] a").each((_, element) => {
+        let fullUrl = $(element).attr("href");
 
-            servers.push({
-              text: `🖥 ${serverDomain}`,
-              url: embedUrl,
-            });
+        if (fullUrl && fullUrl.includes("totalsportek.space/embed")) {
+          try {
+            fullUrl = encodeURI(decodeURI(fullUrl));
+            const urlObj = new URL(fullUrl);
+            const forceParam = urlObj.searchParams.get("force");
+
+            if (forceParam) {
+              const decodedUrl = decodeURIComponent(forceParam);
+              const serverDomain = new URL(decodedUrl).hostname;
+              const embedUrl = `https://srv1.eu.org/?stream=${encodeURIComponent(
+                decodedUrl
+              )}`;
+
+              servers.push({
+                text: `🖥 ${serverDomain}`,
+                url: embedUrl,
+              });
+            }
+          } catch (urlError) {
+            console.error("Error processing URL:", urlError);
           }
-        } catch (urlError) {
-          console.error("Error processing URL:", urlError);
         }
-      }
-    });
-
-    // Create 2-column layout for servers
-    const serverButtons = [];
-    for (let i = 0; i < servers.length; i += 2) {
-      const row = [];
-      row.push(servers[i]);
-      if (servers[i + 1]) {
-        row.push(servers[i + 1]);
-      }
-      serverButtons.push(row);
-    }
-
-    // Add back button
-    serverButtons.push([{ text: "⬅️ Back", callback_data: "back_to_matches" }]);
-
-    if (servers.length === 0) {
-      await ctx.answerCbQuery("No available servers found for this match.");
-    } else {
-      await ctx.editMessageText(`Available servers for *${title}*:`, {
-        reply_markup: {
-          inline_keyboard: serverButtons,
-        },
-        parse_mode: "Markdown",
       });
-    }
-  } catch (error) {
-    console.error("Error fetching match servers:", error);
-    await ctx.answerCbQuery("Sorry, something went wrong. Please try again.");
-  }
-});
 
-bot.action("page_info", async (ctx) => {
+      // Create 2-column layout for servers
+      const serverButtons = [];
+      for (let i = 0; i < servers.length; i += 2) {
+        const row = [];
+        row.push(servers[i]);
+        if (servers[i + 1]) {
+          row.push(servers[i + 1]);
+        }
+        serverButtons.push(row);
+      }
+
+      // Add back button
+      serverButtons.push([
+        { text: "⬅️ Back", callback_data: "back_to_matches" },
+      ]);
+
+      if (servers.length === 0) {
+        await ctx.answerCbQuery("No available servers found for this match.");
+      } else {
+        await ctx.editMessageText(`Available servers for *${title}*:`, {
+          reply_markup: {
+            inline_keyboard: serverButtons,
+          },
+          parse_mode: "Markdown",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching match servers:", error);
+      await ctx.answerCbQuery("Sorry, something went wrong. Please try again.");
+    }
+  });
+
+  // Handle pagination and back actions
+  bot.action("page_info", async (ctx) => {
     await ctx.answerCbQuery("Current page number");
   });
 
-// Handle pagination and back actions
-bot.action("next_page", async (ctx) => {
-  try {
-    const currentUserPage = currentPage.get(ctx.from.id) || 0;
-    currentPage.set(ctx.from.id, currentUserPage + 1);
-    await sendMatchesPage(ctx, true);
-    await ctx.answerCbQuery();
-  } catch (error) {
-    console.error("Error in next page:", error);
-    await ctx.answerCbQuery("Sorry, something went wrong.");
-  }
-});
+  bot.action("next_page", async (ctx) => {
+    try {
+      const currentUserPage = currentPage.get(ctx.from.id) || 0;
+      currentPage.set(ctx.from.id, currentUserPage + 1);
+      await sendMatchesPage(ctx, true);
+      await ctx.answerCbQuery();
+    } catch (error) {
+      console.error("Error in next page:", error);
+      await ctx.answerCbQuery("Sorry, something went wrong.");
+    }
+  });
 
-bot.action("prev_page", async (ctx) => {
-  try {
-    const currentUserPage = currentPage.get(ctx.from.id) || 0;
-    currentPage.set(ctx.from.id, currentUserPage - 1);
-    await sendMatchesPage(ctx, true);
-    await ctx.answerCbQuery();
-  } catch (error) {
-    console.error("Error in previous page:", error);
-    await ctx.answerCbQuery("Sorry, something went wrong.");
-  }
-});
+  bot.action("prev_page", async (ctx) => {
+    try {
+      const currentUserPage = currentPage.get(ctx.from.id) || 0;
+      currentPage.set(ctx.from.id, currentUserPage - 1);
+      await sendMatchesPage(ctx, true);
+      await ctx.answerCbQuery();
+    } catch (error) {
+      console.error("Error in previous page:", error);
+      await ctx.answerCbQuery("Sorry, something went wrong.");
+    }
+  });
 
-bot.action("back_to_matches", async (ctx) => {
-  try {
-    currentPage.set(ctx.from.id, 0);
-    await sendMatchesPage(ctx, true);
-    await ctx.answerCbQuery();
-  } catch (error) {
-    console.error("Error in back action:", error);
-    await ctx.answerCbQuery("Sorry, something went wrong. Please try again.");
-  }
-});
-
-// Start Express server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-
-// Start bot
-bot.launch();
-
-// Enable graceful stop
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+  bot.action("back_to_matches", async (ctx) => {
+    try {
+      currentPage.set(ctx.from.id, 0);
+      await sendMatchesPage(ctx, true);
+      await ctx.answerCbQuery();
+    } catch (error) {
+      console.error("Error in back action:", error);
+      await ctx.answerCbQuery("Sorry, something went wrong. Please try again.");
+    }
+  });
+};
