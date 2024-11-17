@@ -39,6 +39,11 @@ function createSafeCallbackData(type, id, page) {
     return callbackData.slice(0, 64);
 }
 
+function getProxiedUrl(url) {
+    const encodedUrl = encodeURIComponent(url);
+    return `https://api.allorigins.win/raw?url=${encodedUrl}`;
+}
+
 // Button Creation Functions
 function createSportsButtons(sports) {
     const buttons = [];
@@ -149,7 +154,7 @@ module.exports = (bot) => {
     // Main command handler
     bot.command("streamed", async (ctx) => {
         try {
-            const response = await axios.get("https://streamed.su/api/sports");
+            const response = await axios.get(getProxiedUrl("https://streamed.su/api/sports"));
             const sports = response.data;
 
             const buttons = createSportsButtons(sports);
@@ -171,7 +176,7 @@ module.exports = (bot) => {
             const sportId = ctx.match[1];
             const page = parseInt(ctx.match[2]) || 1;
             
-            const response = await axios.get(`https://streamed.su/api/matches/${sportId}/popular`);
+            const response = await axios.get(getProxiedUrl(`https://streamed.su/api/matches/${sportId}/popular`));
             const matches = response.data;
             const buttons = createPaginatedMatchButtons(matches, sportId, page);
 
@@ -198,15 +203,15 @@ module.exports = (bot) => {
 
             switch(filterType) {
                 case 'all':
-                    response = await axios.get("https://streamed.su/api/matches/all/popular");
+                    response = await axios.get(getProxiedUrl("https://streamed.su/api/matches/all/popular"));
                     messageText = "All Popular Matches:";
                     break;
                 case 'today':
-                    response = await axios.get("https://streamed.su/api/matches/all-today/popular");
+                    response = await axios.get(getProxiedUrl("https://streamed.su/api/matches/all-today/popular"));
                     messageText = "Today's Matches:";
                     break;
                 case 'live':
-                    response = await axios.get("https://streamed.su/api/matches/live/popular");
+                    response = await axios.get(getProxiedUrl("https://streamed.su/api/matches/live/popular"));
                     messageText = "🔴 Live Matches:";
                     break;
                 default:
@@ -235,7 +240,7 @@ module.exports = (bot) => {
             const matchId = ctx.match[1];
             const sportId = ctx.match[2];
 
-            const response = await axios.get(`https://streamed.su/api/matches/${sportId}/popular`);
+            const response = await axios.get(getProxiedUrl(`https://streamed.su/api/matches/${sportId}/popular`));
             const match = response.data.find(m => m.id === matchId);
 
             if (!match) {
@@ -244,7 +249,7 @@ module.exports = (bot) => {
             }
 
             const streamPromises = match.sources.map(source => 
-                axios.get(`https://streamed.su/api/stream/${source.source}/${source.id}`)
+                axios.get(getProxiedUrl(`https://streamed.su/api/stream/${source.source}/${source.id}`))
                     .then(response => response.data)
                     .catch(() => [])
             );
@@ -260,7 +265,7 @@ module.exports = (bot) => {
                              `📅 ${formatBangladeshTime(match.date)}`;
 
             if (match.poster) {
-                messageText = `${messageText}<a href="https://streamed.su${match.poster}">&#8205;</a>`;
+                messageText = `${messageText}<a href="${getProxiedUrl(`https://streamed.su${match.poster}`)}">&#8205;</a>`;
             }
 
             const buttons = createStreamButtons(match.sources, streamResponses, sportId);
@@ -295,19 +300,19 @@ module.exports = (bot) => {
 
             switch(sportId) {
                 case 'all':
-                    response = await axios.get("https://streamed.su/api/matches/all/popular");
+                    response = await axios.get(getProxiedUrl("https://streamed.su/api/matches/all/popular"));
                     messageText = "All Popular Matches:";
                     break;
                 case 'today':
-                    response = await axios.get("https://streamed.su/api/matches/all-today/popular");
+                    response = await axios.get(getProxiedUrl("https://streamed.su/api/matches/all-today/popular"));
                     messageText = "Today's Matches:";
                     break;
                 case 'live':
-                    response = await axios.get("https://streamed.su/api/matches/live/popular");
+                    response = await axios.get(getProxiedUrl("https://streamed.su/api/matches/live/popular"));
                     messageText = "🔴 Live Matches:";
                     break;
                 default:
-                    response = await axios.get(`https://streamed.su/api/matches/${sportId}/popular`);
+                    response = await axios.get(getProxiedUrl(`https://streamed.su/api/matches/${sportId}/popular`));
                     messageText = "Popular Matches:";
             }
 
@@ -343,19 +348,19 @@ module.exports = (bot) => {
 
             switch(sportId) {
                 case 'all':
-                    response = await axios.get("https://streamed.su/api/matches/all/popular");
+                    response = await axios.get(getProxiedUrl("https://streamed.su/api/matches/all/popular"));
                     messageText = "All Popular Matches:";
                     break;
                 case 'today':
-                    response = await axios.get("https://streamed.su/api/matches/all-today/popular");
+                    response = await axios.get(getProxiedUrl("https://streamed.su/api/matches/all-today/popular"));
                     messageText = "Today's Matches:";
                     break;
                 case 'live':
-                    response = await axios.get("https://streamed.su/api/matches/live/popular");
+                    response = await axios.get(getProxiedUrl("https://streamed.su/api/matches/live/popular"));
                     messageText = "🔴 Live Matches:";
                     break;
                 default:
-                    response = await axios.get(`https://streamed.su/api/matches/${sportId}/popular`);
+                    response = await axios.get(getProxiedUrl(`https://streamed.su/api/matches/${sportId}/popular`));
                     messageText = "Popular Matches:";
             }
 
@@ -378,7 +383,7 @@ module.exports = (bot) => {
     // Home handler
     bot.action("home", async (ctx) => {
         try {
-            const response = await axios.get("https://streamed.su/api/sports");
+            const response = await axios.get(getProxiedUrl("https://streamed.su/api/sports"));
             const sports = response.data;
 
             const buttons = createSportsButtons(sports);
