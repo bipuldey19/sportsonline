@@ -316,7 +316,7 @@ module.exports = (bot) => {
 
       // Add back button
       serverButtons.push([
-        { text: "⬅️ Back", callback_data: "back_to_matches" },
+        { text: "🔙 Back", callback_data: "back_to_matches" },
       ]);
 
       if (servers.length === 0) {
