@@ -20,7 +20,7 @@ function getShortId(url) {
 
 async function fetchSporthubMatches() {
   try {
-    const response = await axios.get("https://soccer8.sportshub.stream/");
+    const response = await axios.get("https://soccer9.sportshub.stream/");
     const $ = cheerio.load(response.data);
 
     // Reset all matches
