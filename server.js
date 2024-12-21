@@ -4,7 +4,10 @@ const sportshubCommand = require("./commands/sportshub");
 const startCommand = require("./commands/start");
 const streamedCommand = require("./commands/streamed");
 
-const bot = new Telegraf("5368324838:AAElItK4xFs8WdUJX6FBD0qMpx7aXyao3tE");
+// use dotenv to load environment variables
+require("dotenv").config();
+
+const bot = new Telegraf(process.env.BOT_TOKEN);
 const app = express();
 
 // Initialize commands

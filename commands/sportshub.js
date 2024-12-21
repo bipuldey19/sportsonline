@@ -1,6 +1,12 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
 
+// Proxy function
+function getProxiedUrl(url) {
+  const encodedUrl = encodeURIComponent(url);
+  return `https://proxy.bymirrorx.eu.org/raw?url=${encodedUrl}`;
+}
+
 // Store matches data globally
 let matchUrlMap = new Map();
 let allMatches = [];
@@ -20,7 +26,8 @@ function getShortId(url) {
 
 async function fetchSporthubMatches() {
   try {
-    const response = await axios.get("https://soccer9.sportshub.stream/");
+    const proxiedUrl = getProxiedUrl("https://soccer9.sportshub.stream/");
+    const response = await axios.get(proxiedUrl);
     const $ = cheerio.load(response.data);
 
     // Reset all matches
@@ -269,8 +276,8 @@ module.exports = (bot) => {
         return;
       }
 
-      const encodedMatchPageUrl = encodeURI(decodeURI(matchPageUrl));
-      const response = await axios.get(encodedMatchPageUrl);
+      const proxiedMatchPageUrl = getProxiedUrl(matchPageUrl);
+      const response = await axios.get(proxiedMatchPageUrl);
       const $ = cheerio.load(response.data);
 
       const title = $(".d-flex.m-0 > span:nth-of-type(1)").text();
