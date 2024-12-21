@@ -12,9 +12,11 @@ I'm here to help you catch all the **LIVE sports events** from around the world.
 - Get live streams for your favorite games 🔴
 - Choose from multiple server options for the best viewing experience 🖥️
 
-Just type /sportshub to get started and enjoy your game! 🏅
+Just type /sportshub or /streamed to get started and enjoy your game! 🏅
 
-💬 **Need help?** Just ask! I'm here to assist you. 📲
+⚠️ **Disclaimer:** This bot does not host any streams. All streams are external links. Use at your own discretion.
+
+💬 **Important:** It may take a moment to show the results. Please be patient.
 
 Let's get ready for some action! 🎬`,
                 parse_mode: "Markdown",
